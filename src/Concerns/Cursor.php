@@ -14,7 +14,7 @@ trait Cursor
      */
     public function hideCursor(): void
     {
-        static::writeDirectly("\e[?25l");
+        $this->terminal()->write("\e[?25l");
 
         static::$cursorHidden = true;
     }
@@ -24,7 +24,7 @@ trait Cursor
      */
     public function showCursor(): void
     {
-        static::writeDirectly("\e[?25h");
+        $this->terminal()->write("\e[?25h");
 
         static::$cursorHidden = false;
     }
@@ -58,22 +58,6 @@ trait Cursor
             $sequence .= "\e[{$y}B"; // Down
         }
 
-        static::writeDirectly($sequence);
-    }
-
-    /**
-     * Move the cursor to the given column.
-     */
-    public function moveCursorToColumn(int $column): void
-    {
-        static::writeDirectly("\e[{$column}G");
-    }
-
-    /**
-     * Move the cursor up by the given number of lines.
-     */
-    public function moveCursorUp(int $lines): void
-    {
-        static::writeDirectly("\e[{$lines}A");
+        $this->terminal()->write($sequence);
     }
 }

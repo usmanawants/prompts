@@ -15,9 +15,7 @@ class PasswordPrompt extends Prompt
         public string $label,
         public string $placeholder = '',
         public bool|string $required = false,
-        public mixed $validate = null,
-        public string $hint = '',
-        public ?Closure $transform = null,
+        public ?Closure $validate = null,
     ) {
         $this->trackTypedValue();
     }
@@ -27,7 +25,7 @@ class PasswordPrompt extends Prompt
      */
     public function masked(): string
     {
-        return str_repeat('•', mb_strlen($this->value()));
+        return str_repeat('•', strlen($this->value()));
     }
 
     /**

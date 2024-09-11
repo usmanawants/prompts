@@ -2,10 +2,6 @@
 
 namespace Laravel\Prompts;
 
-use ReflectionClass;
-use RuntimeException;
-use Symfony\Component\Console\Terminal as SymfonyTerminal;
-
 class Terminal
 {
     /**
@@ -14,26 +10,29 @@ class Terminal
     protected ?string $initialTtyMode;
 
     /**
-     * The Symfony Terminal instance.
+     * The number of columns in the terminal.
      */
-    protected SymfonyTerminal $terminal;
+    protected int $cols;
 
     /**
-     * Create a new Terminal instance.
+     * The number of lines in the terminal.
      */
-    public function __construct()
-    {
-        $this->terminal = new SymfonyTerminal;
-    }
+    protected int $lines;
 
     /**
      * Read a line from the terminal.
      */
     public function read(): string
     {
-        $input = fread(STDIN, 1024);
+        return fread(STDIN, 1024) ?: '';
+    }
 
-        return $input !== false ? $input : '';
+    /**
+     * Write data to the terminal.
+     */
+    public function write(string $data): void
+    {
+        fwrite(STDOUT, $data);
     }
 
     /**
@@ -41,9 +40,9 @@ class Terminal
      */
     public function setTty(string $mode): void
     {
-        $this->initialTtyMode ??= $this->exec('stty -g');
+        $this->initialTtyMode ??= (shell_exec('stty -g') ?: null);
 
-        $this->exec("stty $mode");
+        shell_exec("stty $mode");
     }
 
     /**
@@ -51,8 +50,8 @@ class Terminal
      */
     public function restoreTty(): void
     {
-        if (isset($this->initialTtyMode)) {
-            $this->exec("stty {$this->initialTtyMode}");
+        if ($this->initialTtyMode) {
+            shell_exec("stty {$this->initialTtyMode}");
 
             $this->initialTtyMode = null;
         }
@@ -63,7 +62,7 @@ class Terminal
      */
     public function cols(): int
     {
-        return $this->terminal->getWidth();
+        return $this->cols ??= (int) shell_exec('tput cols 2>/dev/null');
     }
 
     /**
@@ -71,17 +70,7 @@ class Terminal
      */
     public function lines(): int
     {
-        return $this->terminal->getHeight();
-    }
-
-    /**
-     * (Re)initialize the terminal dimensions.
-     */
-    public function initDimensions(): void
-    {
-        (new ReflectionClass($this->terminal))
-            ->getMethod('initDimensions')
-            ->invoke($this->terminal);
+        return $this->lines ??= (int) shell_exec('tput lines 2>/dev/null');
     }
 
     /**
@@ -90,30 +79,5 @@ class Terminal
     public function exit(): void
     {
         exit(1);
-    }
-
-    /**
-     * Execute the given command and return the output.
-     */
-    protected function exec(string $command): string
-    {
-        $process = proc_open($command, [
-            1 => ['pipe', 'w'],
-            2 => ['pipe', 'w'],
-        ], $pipes);
-
-        if (! $process) {
-            throw new RuntimeException('Failed to create process.');
-        }
-
-        $stdout = stream_get_contents($pipes[1]);
-        $stderr = stream_get_contents($pipes[2]);
-        $code = proc_close($process);
-
-        if ($code !== 0 || $stdout === false) {
-            throw new RuntimeException(trim($stderr ?: "Unknown error (code: $code)"), $code);
-        }
-
-        return $stdout;
     }
 }

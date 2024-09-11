@@ -29,7 +29,7 @@ class Note extends Prompt
 
         $this->state = 'submit';
 
-        static::output()->write($this->renderTheme());
+        $this->output()->write($this->renderTheme());
 
         return true;
     }
